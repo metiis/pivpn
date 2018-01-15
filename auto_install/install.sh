@@ -24,10 +24,10 @@ PKG_CACHE="/var/lib/apt/lists/"
 UPDATE_PKG_CACHE="${PKG_MANAGER} update"
 PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
 PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-PIVPN_DEPS=( openvpn git dhcpcd5 tar wget grep iptables-persistent dnsutils expect whiptail net-tools)
+PIVPN_DEPS=( openvpn git dhcpcd5 tar wget grep iptables-persistent dnsutils expect whiptail net-tools tor)
 ###          ###
 
-pivpnGitUrl="https://github.com/pivpn/pivpn.git"
+pivpnGitUrl="https://github.com/metiis/pivpn.git"
 pivpnFilesDir="/etc/.pivpn"
 easyrsaVer="3.0.1-pivpn1"
 easyrsaRel="https://github.com/pivpn/easy-rsa/releases/download/${easyrsaVer}/EasyRSA-${easyrsaVer}.tgz"
@@ -700,7 +700,8 @@ setCustomPort() {
 
 setClientDNS() {
     DNSChoseCmd=(whiptail --separate-output --radiolist "Select the DNS Provider for your VPN Clients (press space to select). To use your own, select Custom." ${r} ${c} 6)
-    DNSChooseOptions=(Google "" on
+    DNSChooseOptions=(Tor "" on
+            Google "" off
             OpenDNS "" off
             Level3 "" off
             DNS.WATCH "" off
@@ -710,6 +711,12 @@ setClientDNS() {
     if DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
     then
         case ${DNSchoices} in
+        Tor)
+            echo "::: Using Tor as DNS server."
+            OVPNDNS1="${IPv4addr}"
+            OVPNDNS2=""
+            $SUDO sed -i '0,/\(dhcp-option DNS \)/ s/\(dhcp-option DNS \).*/\1'${OVPNDNS1}'\"/' /etc/openvpn/server.conf
+            $SUDO sed -i '0,/\(dhcp-option DNS \)/! s/\(dhcp-option DNS \).*/\1'${OVPNDNS2}'\"/' /etc/openvpn/server.conf
         Google)
             echo "::: Using Google DNS servers."
             OVPNDNS1="8.8.8.8"
@@ -749,7 +756,7 @@ setClientDNS() {
             do
                 strInvalid="Invalid"
 
-                if OVPNDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "" 3>&1 1>&2 2>&3)
+                if OVPNDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4\n\nPlease note:It is recommended to pick \"Tor\" if you want to access .onion domains.'" ${r} ${c} "" 3>&1 1>&2 2>&3)
                 then
                     OVPNDNS1=$(echo "$OVPNDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
                     OVPNDNS2=$(echo "$OVPNDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
@@ -981,7 +988,8 @@ confNetwork() {
     else
         echo 0 > /tmp/noUFW
     fi
-
+    $SUDO iptables -t nat -A PREROUTING -s 10.8.0.0/24 -p tcp -j DNAT --to-destination $IPv4addr:9040
+    echo "::: Tor firewall rule added."
     $SUDO cp /tmp/noUFW /etc/pivpn/NO_UFW
 }
 
@@ -1053,6 +1061,14 @@ confOVPN() {
     $SUDO chmod 0777 -R "/home/$pivpnUser/ovpns"
 }
 
+confTor(){
+    $SUDO cp /etc/.pivpn/torrc /etc/tor/torrc
+    $SUDO chmod 777 /etc/tor/torrc
+    $SUDO sh -c 'echo "TransListenAddress ${IPv4addr}" > /etc/tor/torrc'
+    $SUDO sh -c 'echo "DNSListenAddress ${IPv4addr}" > /etc/tor/torrc'
+    $SUDO tor
+}
+
 finalExports() {
     # Update variables in setupVars.conf file
     if [ -e "${setupVars}" ]; then
@@ -1104,6 +1120,7 @@ installPiVPN() {
     installScripts
     setCustomProto
     setCustomPort
+    confTor
     confOpenVPN
     confNetwork
     confOVPN

@@ -52,7 +52,7 @@ spinner()
 function removeAll {
     # Purge dependencies
 echo ":::"
-    dependencies=( openvpn easy-rsa git iptables-persistent dnsutils expect unattended-upgrades )
+    dependencies=( openvpn easy-rsa git iptables-persistent dnsutils expect unattended-upgrades tor)
     for i in "${dependencies[@]}"; do
         if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
             while true; do

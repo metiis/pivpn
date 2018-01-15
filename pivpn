@@ -40,6 +40,10 @@ function debugFunc {
         if [ $? -ne 0 ]; then
             IPTABLES_FIX=2
         fi
+        $SUDO iptables -t nat -L -n -v | grep -q 'DNAT.*10.8.0.0\/24'
+        if [ $? -ne 0 ]; then
+            IPTABLES_FIX=2
+        fi
         if [[ ${IPTABLES_FIX} -gt 1 ]]; then
             echo "::: We detected some potential issues with your iptables."
             read -p "::: Would you like us to try to fix this? [y/n]: " -n 1 -r
