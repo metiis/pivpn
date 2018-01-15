@@ -717,6 +717,7 @@ setClientDNS() {
             OVPNDNS2=""
             $SUDO sed -i '0,/\(dhcp-option DNS \)/ s/\(dhcp-option DNS \).*/\1'${OVPNDNS1}'\"/' /etc/openvpn/server.conf
             $SUDO sed -i '0,/\(dhcp-option DNS \)/! s/\(dhcp-option DNS \).*/\1'${OVPNDNS2}'\"/' /etc/openvpn/server.conf
+            ;;
         Google)
             echo "::: Using Google DNS servers."
             OVPNDNS1="8.8.8.8"
