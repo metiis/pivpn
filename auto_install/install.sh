@@ -1064,6 +1064,8 @@ confOVPN() {
 confTor(){
     $SUDO cp /etc/.pivpn/torrc /etc/tor/torrc
     $SUDO chmod 777 /etc/tor/torrc
+    $SUDO cp /etc/.pivpn/starttor /etc/init.d/starttor
+    $SUDO update-rc.d starttor defaults
     $SUDO sh -c 'echo "TransListenAddress ${IPv4addr}" > /etc/tor/torrc'
     $SUDO sh -c 'echo "DNSListenAddress ${IPv4addr}" > /etc/tor/torrc'
     $SUDO tor

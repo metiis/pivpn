@@ -102,6 +102,11 @@ echo ":::"
     $SUDO rm /usr/local/bin/pivpn &> /dev/null
     $SUDO rm /etc/bash_completion.d/pivpn
 
+    $SUDO rm -rf /etc/tor/
+    $SUDO update-rc.d -f starttor remove
+    $SUDO rm /etc/init.d/starttor
+    
+
     # Disable IPv4 forwarding
     sed -i '/net.ipv4.ip_forward=1/c\#net.ipv4.ip_forward=1' /etc/sysctl.conf
     sysctl -p
